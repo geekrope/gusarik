@@ -1,70 +1,6 @@
 import express = require('express');
 const router = express.Router();
 
-interface Parameter
-{
-	get value(): any;
-}
-
-class StringParameter implements Parameter
-{
-	private _value: string;
-
-	public get value(): string
-	{
-		return this._value;
-	}
-
-	public constructor(value: string)
-	{
-		this._value = value;
-	}
-}
-
-class NumericalParameter implements Parameter
-{
-	private _value: number;
-
-	public get value(): number
-	{
-		return this._value;
-	}
-
-	public constructor(value: number)
-	{
-		this._value = value;
-	}
-}
-
-interface GameRequest
-{
-	getParameter(name: string): Parameter;
-}
-
-interface GameResponse
-{
-	forEach(action: (paramter: Parameter) => void): void;
-}
-
-class NullResponse implements GameResponse
-{
-	public forEach(_action: (paramter: Parameter) => void): void
-	{
-
-	}
-}
-
-interface Game
-{
-	getState(parameters: GameRequest): GameState | undefined;
-	processAction(parameters: GameRequest): GameResponse;
-}
-
-interface GameState
-{
-
-}
-
 class TicTacState implements GameState
 {
 	public board: number[][];
@@ -104,7 +40,7 @@ class TicTacGame implements Game
 
 			if (x instanceof NumericalParameter && y instanceof NumericalParameter)
 			{
-				return this.state.board[x.value]![y.value] == 0;
+				return !this.state.board[x.value]![y.value];
 			}
 		}
 
@@ -115,7 +51,7 @@ class TicTacGame implements Game
 	{
 		return this.state;
 	}
-	public processAction(parameters: GameRequest): NullResponse
+	public processAction(parameters: GameRequest): Parameter[]
 	{
 		if (this.validateAction(parameters))
 		{
@@ -131,7 +67,7 @@ class TicTacGame implements Game
 
 		this.turn = this.turn == 1 ? 2 : 1;
 
-		return new NullResponse();
+		return [];
 	}
 
 	public constructor()
@@ -141,46 +77,38 @@ class TicTacGame implements Game
 	}
 }
 
-class GameRegister
-{
-	private _games: Map<number, Game>;
-	private static _instance: GameRegister | undefined;
-
-	public static get instance(): GameRegister
-	{
-		return (this._instance == undefined ? this._instance = new GameRegister() : this._instance);
-	}
-
-	public request(id: number): Game | undefined
-	{
-		if (this._games.has(id))
-		{
-			return this._games.get(id);
-		}
-
-		return undefined;
-	}
-	public register(id: number, game: Game)
-	{
-		this._games.set(id, game);
-	}
-
-	private constructor()
-	{
-		this._games = new Map<number, Game>();
-	}
-}
 
 const game = new TicTacGame();
+GameRegister.instance.register(228, game);
 
 router.get('/', (_req: express.Request, res: express.Response) =>
 {
 	res.sendFile(__dirname + `\\index.html`);
 });
 
-router.get('/state', (_req: express.Request, _res: express.Response) =>
+router.get('/state', (req: express.Request, res: express.Response) =>
 {
+	const query = new QueryAdapter(req.query);
+	const id = query.getParameter("id");
 
+	if (id && id instanceof NumericalParameter)
+	{
+		const state = GameRegister.instance.request(id.value)?.getState(query);
+		res.send(JSON.stringify(state));
+	}
+});
+
+router.get('/act', (req: express.Request, _res: express.Response) =>
+{
+	const query = new QueryAdapter(req.query);
+	const id = query.getParameter("id") as NumericalParameter;
+
+	if (id)
+	{
+		const game = GameRegister.instance.request(id.value);
+
+		game?.processAction(query);
+	}
 });
 
 export default router;
