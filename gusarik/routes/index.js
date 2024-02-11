@@ -2,46 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const router = express.Router();
-class StringParameter {
-    get name() {
-        return this._name;
-    }
-    get value() {
-        return this._value;
-    }
-    constructor(name, value) {
-        this._name = name;
-        this._value = value;
-    }
-}
-class NumericalParameter {
-    get name() {
-        return this._name;
-    }
-    get value() {
-        return this._value;
-    }
-    constructor(name, value) {
-        this._name = name;
-        this._value = value;
-    }
-}
-class QueryAdapter {
-    getParameter(name) {
-        const value = this._adaptee[name];
-        const asNumber = Number(value);
-        if (value && !isNaN(asNumber)) {
-            return new NumericalParameter(name, asNumber);
-        }
-        else if (value) {
-            return new StringParameter(name, value);
-        }
-        return undefined;
-    }
-    constructor(query) {
-        this._adaptee = query;
-    }
-}
+const core_1 = require("./core");
 class TicTacState {
     constructor(turn) {
         this.board = [];
@@ -61,7 +22,7 @@ class TicTacGame {
             if (turn.value != this.turn) {
                 return false;
             }
-            if (x instanceof NumericalParameter && y instanceof NumericalParameter) {
+            if (x instanceof core_1.default.NumericalParameter && y instanceof core_1.default.NumericalParameter) {
                 return !this.state.board[x.value][y.value];
             }
         }
@@ -87,42 +48,25 @@ class TicTacGame {
         this.state = new TicTacState(this.turn);
     }
 }
-class GameRegister {
-    static get instance() {
-        return (this._instance == undefined ? this._instance = new GameRegister() : this._instance);
-    }
-    request(id) {
-        if (this._games.has(id)) {
-            return this._games.get(id);
-        }
-        return undefined;
-    }
-    register(id, game) {
-        this._games.set(id, game);
-    }
-    constructor() {
-        this._games = new Map();
-    }
-}
 const game = new TicTacGame();
-GameRegister.instance.register(228, game);
+core_1.default.GameRegister.instance.register(228, game);
 router.get('/', (_req, res) => {
     res.sendFile(__dirname + `\\index.html`);
 });
 router.get('/state', (req, res) => {
     var _a;
-    const query = new QueryAdapter(req.query);
+    const query = new core_1.default.QueryAdapter(req.query);
     const id = query.getParameter("id");
-    if (id && id instanceof NumericalParameter) {
-        const state = (_a = GameRegister.instance.request(id.value)) === null || _a === void 0 ? void 0 : _a.getState(query);
+    if (id && id instanceof core_1.default.NumericalParameter) {
+        const state = (_a = core_1.default.GameRegister.instance.request(id.value)) === null || _a === void 0 ? void 0 : _a.getState(query);
         res.send(JSON.stringify(state));
     }
 });
 router.get('/act', (req, _res) => {
-    const query = new QueryAdapter(req.query);
+    const query = new core_1.default.QueryAdapter(req.query);
     const id = query.getParameter("id");
     if (id) {
-        const game = GameRegister.instance.request(id.value);
+        const game = core_1.default.GameRegister.instance.request(id.value);
         game === null || game === void 0 ? void 0 : game.processAction(query);
     }
 });

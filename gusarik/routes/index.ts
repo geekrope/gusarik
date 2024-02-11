@@ -1,7 +1,9 @@
 import express = require('express');
 const router = express.Router();
 
-class TicTacState implements GameState
+import Core from './core';
+
+class TicTacState implements Core.GameState
 {
 	public board: number[][];
 	public turn: number;
@@ -18,15 +20,15 @@ class TicTacState implements GameState
 	}
 }
 
-class TicTacGame implements Game
+class TicTacGame implements Core.Game
 {
 	private turn: number;
 	private state: TicTacState;
 
-	private validateAction(action: GameRequest): boolean
+	private validateAction(action: Core.GameRequest): boolean
 	{
-		const type = action.getParameter("type") as StringParameter;
-		const turn = action.getParameter("turn") as NumericalParameter;
+		const type = action.getParameter("type") as Core.StringParameter;
+		const turn = action.getParameter("turn") as Core.NumericalParameter;
 
 		if (type.value == "place")
 		{
@@ -38,7 +40,7 @@ class TicTacGame implements Game
 				return false;
 			}
 
-			if (x instanceof NumericalParameter && y instanceof NumericalParameter)
+			if (x instanceof Core.NumericalParameter && y instanceof Core.NumericalParameter)
 			{
 				return !this.state.board[x.value]![y.value];
 			}
@@ -47,20 +49,20 @@ class TicTacGame implements Game
 		return false;
 	}
 
-	public getState(_parameters: GameRequest): TicTacState
+	public getState(_parameters: Core.GameRequest): TicTacState
 	{
 		return this.state;
 	}
-	public processAction(parameters: GameRequest): Parameter[]
+	public processAction(parameters: Core.GameRequest): Core.Parameter[]
 	{
 		if (this.validateAction(parameters))
 		{
-			const type = parameters.getParameter("type") as StringParameter;
+			const type = parameters.getParameter("type") as Core.StringParameter;
 
 			if (type.value == "place")
 			{
-				const x = parameters.getParameter("x") as NumericalParameter;
-				const y = parameters.getParameter("y") as NumericalParameter;
+				const x = parameters.getParameter("x") as Core.NumericalParameter;
+				const y = parameters.getParameter("y") as Core.NumericalParameter;
 				this.state.board[x.value]![y.value] = this.turn;
 			}
 		}
@@ -77,9 +79,8 @@ class TicTacGame implements Game
 	}
 }
 
-
 const game = new TicTacGame();
-GameRegister.instance.register(228, game);
+Core.GameRegister.instance.register(228, game);
 
 router.get('/', (_req: express.Request, res: express.Response) =>
 {
@@ -88,24 +89,24 @@ router.get('/', (_req: express.Request, res: express.Response) =>
 
 router.get('/state', (req: express.Request, res: express.Response) =>
 {
-	const query = new QueryAdapter(req.query);
+	const query = new Core.QueryAdapter(req.query);
 	const id = query.getParameter("id");
 
-	if (id && id instanceof NumericalParameter)
+	if (id && id instanceof Core.NumericalParameter)
 	{
-		const state = GameRegister.instance.request(id.value)?.getState(query);
+		const state = Core.GameRegister.instance.request(id.value)?.getState(query);
 		res.send(JSON.stringify(state));
 	}
 });
 
 router.get('/act', (req: express.Request, _res: express.Response) =>
 {
-	const query = new QueryAdapter(req.query);
-	const id = query.getParameter("id") as NumericalParameter;
+	const query = new Core.QueryAdapter(req.query);
+	const id = query.getParameter("id") as Core.NumericalParameter;
 
 	if (id)
 	{
-		const game = GameRegister.instance.request(id.value);
+		const game = Core.GameRegister.instance.request(id.value);
 
 		game?.processAction(query);
 	}
