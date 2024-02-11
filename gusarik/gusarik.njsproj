@@ -50,7 +50,18 @@
     <Folder Include="public\javascripts\" />
     <Folder Include="public\stylesheets\" />
     <Folder Include="routes\" />
+    <Folder Include="routes\Interfaces\" />
     <Folder Include="views\" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="routes\GameRegister.ts" />
+    <TypeScriptCompile Include="routes\Interfaces\GameState.ts" />
+    <TypeScriptCompile Include="routes\Interfaces\Game.ts" />
+    <TypeScriptCompile Include="routes\QueryAdapter.ts" />
+    <TypeScriptCompile Include="routes\NumericalParameter.ts" />
+    <TypeScriptCompile Include="routes\Interfaces\GameRequest.ts" />
+    <TypeScriptCompile Include="routes\StringParameter.ts" />
+    <TypeScriptCompile Include="routes\Interfaces\Parameter.ts" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
   <ProjectExtensions>
