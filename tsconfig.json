@@ -38,7 +38,7 @@
     "suppressExcessPropertyErrors": false,
     "suppressImplicitAnyIndexErrors": false,
     "noStrictGenericChecks": false,
-    "outDir": "./script"
+    "outDir": "./public/javascripts"
   },
   "exclude": [
     "node_modules"
