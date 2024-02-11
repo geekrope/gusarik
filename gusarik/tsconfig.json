@@ -25,7 +25,8 @@
     "noImplicitUseStrict": false,
     "suppressExcessPropertyErrors": false,
     "suppressImplicitAnyIndexErrors": false,
-    "noStrictGenericChecks": false
+    "noStrictGenericChecks": false,
+    "outDir": "./script"
   },
   "exclude": [
     "node_modules"
