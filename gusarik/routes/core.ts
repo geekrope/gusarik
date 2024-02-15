@@ -1,94 +1,52 @@
 module Core
 {
-	export interface Parameter
+	export interface DataTransferObjectConstructor<T>
 	{
-		get name(): string;
-		get value(): any;
+		new(): T; //instantiates DataTransferObject
 	}
 
-	export class StringParameter implements Parameter
+	export class DataTransferObjectValidator
 	{
-		private _name: string;
-		private _value: string;
-
-		public get name(): string
+		public static validate<T>(ctor: DataTransferObjectConstructor<T>, object: any): T | undefined
 		{
-			return this._name;
-		}
-		public get value(): string
-		{
-			return this._value;
-		}
+			const result: any = new ctor();
 
-		public constructor(name: string, value: string)
-		{
-			this._name = name;
-			this._value = value;
-		}
-	}
-
-	export class NumericalParameter implements Parameter
-	{
-		private _name: string;
-		private _value: number;
-
-		public get name(): string
-		{
-			return this._name;
-		}
-		public get value(): number
-		{
-			return this._value;
-		}
-
-		public constructor(name: string, value: number)
-		{
-			this._name = name;
-			this._value = value;
-		}
-	}
-
-	export interface GameRequest
-	{
-		getParameter(name: string): Parameter | undefined;
-	}
-
-	export class QueryAdapter implements GameRequest
-	{
-		private _adaptee: any;
-
-		public getParameter(name: string): Parameter | undefined
-		{
-			const value = this._adaptee[name] as string;
-			const asNumber = Number(value);
-
-			if (value && !isNaN(asNumber))
+			for (const key in Object.keys(result))
 			{
-				return new NumericalParameter(name, asNumber);
-			}
-			else if (value)
-			{
-				return new StringParameter(name, value);
+				const value = object[key];
+
+				//typeof works only for basic structures (integer, string, boolean etc.)
+				if (value === undefined || typeof object[key] != typeof result[key])
+				{
+					return undefined;
+				}
+				else
+				{
+					result[key];
+				}
 			}
 
-			return undefined;
-		}
-
-		public constructor(query: any)
-		{
-			this._adaptee = query;
+			return result;
 		}
 	}
 
-	export interface Game
+	export class EmptyDataTransferObject
 	{
-		getState(parameters: GameRequest): GameState | undefined;
-		processAction(parameters: GameRequest): Parameter[];
+		new(): EmptyDataTransferObject
+		{
+			return new EmptyDataTransferObject();
+		}
 	}
 
 	export interface GameState
 	{
 
+	}
+
+	export interface Game
+	{
+		getState(parameters: any): GameState | undefined;
+		processAction(actionType: string, parameters: any): any;
 	}
 
 	export class GameRegister
@@ -107,6 +65,8 @@ module Core
 			{
 				return this._games.get(id);
 			}
+
+
 
 			return undefined;
 		}

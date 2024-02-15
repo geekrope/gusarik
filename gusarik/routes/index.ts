@@ -3,6 +3,18 @@ const router = express.Router();
 
 import Core from './core';
 
+type PlaceAction = { x: number, y: number, turn: number };
+
+class PlaceActionConstructor
+{
+	new(): PlaceAction
+	{
+		return { x: -1, y: -1, turn: -1 };
+	}
+}
+
+type ticTacAction = "xz" | "place";
+
 class TicTacState implements Core.GameState
 {
 	public board: number[][];
@@ -25,51 +37,22 @@ class TicTacGame implements Core.Game
 	private turn: number;
 	private state: TicTacState;
 
-	private validateAction(action: Core.GameRequest): boolean
-	{
-		const type = action.getParameter("type") as Core.StringParameter;
-		const turn = action.getParameter("turn") as Core.NumericalParameter;
-
-		if (type.value == "place")
-		{
-			const x = action.getParameter("x");
-			const y = action.getParameter("y");
-
-			if (turn.value != this.turn)
-			{
-				return false;
-			}
-
-			if (x instanceof Core.NumericalParameter && y instanceof Core.NumericalParameter)
-			{
-				return !this.state.board[x.value]![y.value];
-			}
-		}
-
-		return false;
-	}
-
-	public getState(_parameters: Core.GameRequest): TicTacState
+	public getState(_parameters: any): TicTacState
 	{
 		return this.state;
 	}
-	public processAction(parameters: Core.GameRequest): Core.Parameter[]
+	public processAction(actionType: ticTacAction, action: any): any
 	{
-		if (this.validateAction(parameters))
+		if (actionType == "place")
 		{
-			const type = parameters.getParameter("type") as Core.StringParameter;
+			const placeAction = Core.DataTransferObjectValidator.validate<PlaceAction>(PlaceActionConstructor as unknown as Core.DataTransferObjectConstructor<PlaceAction>, action,);
 
-			if (type.value == "place")
-			{
-				const x = parameters.getParameter("x") as Core.NumericalParameter;
-				const y = parameters.getParameter("y") as Core.NumericalParameter;
-				this.state.board[x.value]![y.value] = this.turn;
-			}
+			this.state.board[placeAction!.x]![placeAction!.y] = this.turn;
 		}
 
 		this.turn = this.turn == 1 ? 2 : 1;
 
-		return [];
+		return new Core.EmptyDataTransferObject();
 	}
 
 	public constructor()
@@ -89,26 +72,24 @@ router.get('/', (_req: express.Request, res: express.Response) =>
 
 router.get('/state', (req: express.Request, res: express.Response) =>
 {
-	const query = new Core.QueryAdapter(req.query);
-	const id = query.getParameter("id");
+	const id = req.query["id"];
 
-	if (id && id instanceof Core.NumericalParameter)
+	if (id && !isNaN(Number(id)))
 	{
-		const state = Core.GameRegister.instance.request(id.value)?.getState(query);
+		const state = Core.GameRegister.instance.request(Number(id))?.getState(new Core.EmptyDataTransferObject());
 		res.send(JSON.stringify(state));
 	}
 });
 
 router.get('/act', (req: express.Request, _res: express.Response) =>
 {
-	const query = new Core.QueryAdapter(req.query);
-	const id = query.getParameter("id") as Core.NumericalParameter;
+	const id = req.query["id"];
 
-	if (id)
+	if (id && !isNaN(Number(id)))
 	{
-		const game = Core.GameRegister.instance.request(id.value);
+		const game = Core.GameRegister.instance.request(Number(id));
 
-		game?.processAction(query);
+		game?.processAction("place",req.query);
 	}
 });
 
