@@ -3,71 +3,89 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const router = express.Router();
 const core_1 = require("./core");
-class TicTacState {
-    constructor(turn) {
-        this.board = [];
-        this.turn = turn;
-        for (let i = 0; i < 3; i++) {
-            this.board.push(new Array(3));
+var TicTac;
+(function (TicTac) {
+    class State {
+        get players() {
+            return [];
         }
-    }
-}
-class TicTacGame {
-    validateAction(action) {
-        const type = action.getParameter("type");
-        const turn = action.getParameter("turn");
-        if (type.value == "place") {
-            const x = action.getParameter("x");
-            const y = action.getParameter("y");
-            if (turn.value != this.turn) {
-                return false;
-            }
-            if (x instanceof core_1.default.NumericalParameter && y instanceof core_1.default.NumericalParameter) {
-                return !this.state.board[x.value][y.value];
+        get nexPlayers() {
+            return [];
+        }
+        get winners() {
+            return [];
+        }
+        constructor(turn) {
+            this.board = [];
+            this.turn = turn;
+            for (let i = 0; i < 3; i++) {
+                this.board.push(new Array(3));
             }
         }
-        return false;
     }
-    getState(_parameters) {
-        return this.state;
-    }
-    processAction(parameters) {
-        if (this.validateAction(parameters)) {
-            const type = parameters.getParameter("type");
-            if (type.value == "place") {
-                const x = parameters.getParameter("x");
-                const y = parameters.getParameter("y");
-                this.state.board[x.value][y.value] = this.turn;
-            }
+    TicTac.State = State;
+    class Game {
+        getState(_parameters) {
+            return this.state;
         }
-        this.turn = this.turn == 1 ? 2 : 1;
-        return [];
+        processAction(actionType, actionData) {
+            if (actionType == "place") {
+                if (!actionData)
+                    throw new Error("The place action requires actionData");
+                const placeAction = core_1.default.DataTransferObjectValidator.validate(PlaceActionConstructor, actionData);
+                this.state.board[placeAction.x][placeAction.y] = this.turn;
+            }
+            this.turn = this.turn == 1 ? 2 : 1;
+            return new core_1.default.EmptyDataTransferObject();
+        }
+        constructor() {
+            this.turn = 1;
+            this.state = new State(this.turn);
+        }
     }
+    TicTac.Game = Game;
+    class PlaceActionConstructor {
+        new() {
+            return { x: -1, y: -1, turn: -1 };
+        }
+    }
+})(TicTac || (TicTac = {}));
+class Server {
     constructor() {
-        this.turn = 1;
-        this.state = new TicTacState(this.turn);
+        this.gameRegister = new core_1.default.GameRegister();
+    }
+    getTokenFromRequest(req) {
+        var _a, _b;
+        const gameToken = (_b = (_a = req.query["id"]) === null || _a === void 0 ? void 0 : _a.toString()) !== null && _b !== void 0 ? _b : "No valid token";
+        return gameToken;
     }
 }
-const game = new TicTacGame();
-core_1.default.GameRegister.instance.register(228, game);
-router.get('/', (_req, res) => {
-    res.sendFile(__dirname + `\\index.html`);
+const server = new Server();
+router.post('/init', (_req, res) => {
+    const token = '{33990F06-1217-42C9-B23D-14904E12DF03}';
+    const game = new TicTac.Game();
+    server.gameRegister.register(token, game);
+    res.send({ token: token });
 });
 router.get('/state', (req, res) => {
     var _a;
-    const query = new core_1.default.QueryAdapter(req.query);
-    const id = query.getParameter("id");
-    if (id && id instanceof core_1.default.NumericalParameter) {
-        const state = (_a = core_1.default.GameRegister.instance.request(id.value)) === null || _a === void 0 ? void 0 : _a.getState(query);
-        res.send(JSON.stringify(state));
+    try {
+        const gameToken = server.getTokenFromRequest(req);
+        const state = (_a = server.gameRegister.request(gameToken)) === null || _a === void 0 ? void 0 : _a.getState(null);
+        res.send(state);
+    }
+    catch (e) {
+        res.sendStatus(500);
     }
 });
-router.get('/act', (req, _res) => {
-    const query = new core_1.default.QueryAdapter(req.query);
-    const id = query.getParameter("id");
-    if (id) {
-        const game = core_1.default.GameRegister.instance.request(id.value);
-        game === null || game === void 0 ? void 0 : game.processAction(query);
+router.get('/act', (req, res) => {
+    try {
+        const gameToken = server.getTokenFromRequest(req);
+        const game = server.gameRegister.request(gameToken);
+        game === null || game === void 0 ? void 0 : game.processAction("place", req.query);
+    }
+    catch (e) {
+        res.sendStatus(500);
     }
 });
 exports.default = router;

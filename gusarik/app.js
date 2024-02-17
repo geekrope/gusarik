@@ -6,21 +6,16 @@ const index_1 = require("./routes/index");
 const user_1 = require("./routes/user");
 const debug = require('debug')('my express app');
 const app = express();
-// view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', index_1.default);
 app.use('/users', user_1.default);
-// catch 404 and forward to error handler
 app.use((_req, _res, next) => {
     const err = new Error('Not Found');
     err['status'] = 404;
     next(err);
 });
-// error handlers
-// development error handler
-// will print stacktrace
 if (app.get('env') === 'development') {
     app.use((err, _req, res, _next) => {
         res.status(err['status'] || 500);
@@ -30,8 +25,6 @@ if (app.get('env') === 'development') {
         });
     });
 }
-// production error handler
-// no stacktraces leaked to user
 app.use((err, _req, res, _next) => {
     res.status(err.status || 500);
     res.render('error', {

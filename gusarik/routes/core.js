@@ -2,64 +2,36 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Core;
 (function (Core) {
-    class StringParameter {
-        get name() {
-            return this._name;
-        }
-        get value() {
-            return this._value;
-        }
-        constructor(name, value) {
-            this._name = name;
-            this._value = value;
-        }
-    }
-    Core.StringParameter = StringParameter;
-    class NumericalParameter {
-        get name() {
-            return this._name;
-        }
-        get value() {
-            return this._value;
-        }
-        constructor(name, value) {
-            this._name = name;
-            this._value = value;
-        }
-    }
-    Core.NumericalParameter = NumericalParameter;
-    class QueryAdapter {
-        getParameter(name) {
-            const value = this._adaptee[name];
-            const asNumber = Number(value);
-            if (value && !isNaN(asNumber)) {
-                return new NumericalParameter(name, asNumber);
+    class DataTransferObjectValidator {
+        static validate(ctor, object) {
+            const result = new ctor();
+            for (const key in Object.keys(result)) {
+                const value = object[key];
+                if (value === undefined || typeof object[key] != typeof result[key]) {
+                    throw new TypeError('The object argument is not assignable to type T');
+                }
             }
-            else if (value) {
-                return new StringParameter(name, value);
-            }
-            return undefined;
-        }
-        constructor(query) {
-            this._adaptee = query;
+            return object;
         }
     }
-    Core.QueryAdapter = QueryAdapter;
+    Core.DataTransferObjectValidator = DataTransferObjectValidator;
+    class EmptyDataTransferObject {
+        constructor() {
+        }
+    }
+    Core.EmptyDataTransferObject = EmptyDataTransferObject;
     class GameRegister {
-        static get instance() {
-            return (this._instance == undefined ? this._instance = new GameRegister() : this._instance);
+        constructor() {
+            this._games = new Map();
         }
         request(id) {
-            if (this._games.has(id)) {
-                return this._games.get(id);
-            }
-            return undefined;
+            const game = this._games.get(id);
+            if (game)
+                return game;
+            throw new Error('');
         }
         register(id, game) {
             this._games.set(id, game);
-        }
-        constructor() {
-            this._games = new Map();
         }
     }
     Core.GameRegister = GameRegister;
