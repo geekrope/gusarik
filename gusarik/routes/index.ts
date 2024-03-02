@@ -63,7 +63,8 @@ class TicTacGame implements Core.Game
 }
 
 const game = new TicTacGame();
-Core.GameRegister.instance.register(228, game);
+const register = new Core.GameRegister();
+const id = register.register(game);
 
 router.get('/', (_req: express.Request, res: express.Response) =>
 {
@@ -76,7 +77,7 @@ router.get('/state', (req: express.Request, res: express.Response) =>
 
 	if (id && !isNaN(Number(id)))
 	{
-		const state = Core.GameRegister.instance.request(Number(id))?.getState(new Core.EmptyDataTransferObject());
+		const state = register.request(id.toString())?.getState(new Core.EmptyDataTransferObject());
 		res.send(JSON.stringify(state));
 	}
 });
@@ -87,9 +88,9 @@ router.get('/act', (req: express.Request, _res: express.Response) =>
 
 	if (id && !isNaN(Number(id)))
 	{
-		const game = Core.GameRegister.instance.request(Number(id));
+		const game = register.request(id.toString());
 
-		game?.processAction("place",req.query);
+		game?.processAction("place", req.query);
 	}
 });
 

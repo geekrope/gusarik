@@ -45,39 +45,44 @@ module Core
 
 	export interface Game
 	{
-		getState(parameters: any): GameState | undefined;
+		get registeredPlayers(): string[];
+		getState(parameters: any): GameState;
 		processAction(actionType: string, parameters: any): any;
+	}
+
+	interface GuidGenerator
+	{
+		generate(): string;
 	}
 
 	export class GameRegister
 	{
-		private _games: Map<number, Game>;
-		private static _instance: GameRegister | undefined;
+		private _games: Map<string, Game>;
+		private _guidGenerator: GuidGenerator;
 
-		public static get instance(): GameRegister
-		{
-			return (this._instance == undefined ? this._instance = new GameRegister() : this._instance);
-		}
-
-		public request(id: number): Game | undefined
+		public request(id: string): Game
 		{
 			if (this._games.has(id))
 			{
-				return this._games.get(id);
+				return this._games.get(id)!;
 			}
-
-
-
-			return undefined;
+			else
+			{
+				throw new Error(`Game is not found. id: ${id}`);
+			}
 		}
-		public register(id: number, game: Game)
+		public register(game: Game): string
 		{
+			const id = this._guidGenerator.generate();
 			this._games.set(id, game);
+
+			return id;
 		}
 
-		private constructor()
+		public constructor(guidGenerator: GuidGenerator)
 		{
-			this._games = new Map<number, Game>();
+			this._games = new Map<string, Game>();
+			this._guidGenerator = guidGenerator;
 		}
 	}
 }
