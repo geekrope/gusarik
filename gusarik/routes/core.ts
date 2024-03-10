@@ -7,24 +7,24 @@ module Core
 
 	export class DataTransferObjectValidator
 	{
-		public static validate<T>(ctor: DataTransferObjectConstructor<T>, object: any): T | undefined
+		public static validate<T>(ctor: DataTransferObjectConstructor<T>, object: any): T
 		{
 			const result: any = new ctor();
+			const keys = Object.keys(result);
 
-			for (const key in Object.keys(result))
+			keys.forEach((key) =>
 			{
 				const value = object[key];
 
-				//typeof works only for basic structures (integer, string, boolean etc.)
-				if (value === undefined || typeof object[key] != typeof result[key])
+				if (value === undefined/*|| typeof object[key] != typeof result[key]*/)
 				{
-					return undefined;
+					throw new Error(`Type ${typeof object} is not assignable to a variable of type ${typeof result}`)
 				}
 				else
 				{
-					result[key];
+					result[key] = value;
 				}
-			}
+			});
 
 			return result;
 		}
@@ -38,21 +38,64 @@ module Core
 		}
 	}
 
+	export class Player
+	{
+		private _id: string;
+		private _name: string;
+
+		public get id(): string
+		{
+			return this._id;
+		}
+		public get name(): string
+		{
+			return this._name;
+		}
+
+		public constructor(id: string, name: string)
+		{
+			this._id = id;
+			this._name = name;
+		}
+	}
+
 	export interface GameState
 	{
+		get gamePhase(): GamePhase;
+	}
 
+	export enum GamePhase
+	{
+		"waitingForOthers", "started"
 	}
 
 	export interface Game
 	{
-		get registeredPlayers(): string[];
+		get registeredPlayers(): string[]
+
 		getState(parameters: any): GameState;
 		processAction(actionType: string, parameters: any): any;
+		join(name: string): string;
 	}
 
-	interface GuidGenerator
+	export interface GuidGenerator
 	{
-		generate(): string;
+		next(): string;
+	}
+
+	export class RandomGuidGenerator implements GuidGenerator
+	{
+		private _counter: number;
+
+		public next(): string
+		{
+			return (++this._counter).toString();
+		}
+
+		public constructor()
+		{
+			this._counter = 0;
+		}
 	}
 
 	export class GameRegister
@@ -73,7 +116,7 @@ module Core
 		}
 		public register(game: Game): string
 		{
-			const id = this._guidGenerator.generate();
+			const id = this._guidGenerator.next();
 			this._games.set(id, game);
 
 			return id;

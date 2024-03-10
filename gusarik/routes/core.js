@@ -2,64 +2,73 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Core;
 (function (Core) {
-    class StringParameter {
+    class DataTransferObjectValidator {
+        static validate(ctor, object) {
+            const result = new ctor();
+            const keys = Object.keys(result);
+            keys.forEach((key) => {
+                const value = object[key];
+                if (value === undefined /*|| typeof object[key] != typeof result[key]*/) {
+                    throw new Error(`Type ${typeof object} is not assignable to a variable of type ${typeof result}`);
+                }
+                else {
+                    result[key] = value;
+                }
+            });
+            return result;
+        }
+    }
+    Core.DataTransferObjectValidator = DataTransferObjectValidator;
+    class EmptyDataTransferObject {
+        new() {
+            return new EmptyDataTransferObject();
+        }
+    }
+    Core.EmptyDataTransferObject = EmptyDataTransferObject;
+    class Player {
+        get id() {
+            return this._id;
+        }
         get name() {
             return this._name;
         }
-        get value() {
-            return this._value;
-        }
-        constructor(name, value) {
+        constructor(id, name) {
+            this._id = id;
             this._name = name;
-            this._value = value;
         }
     }
-    Core.StringParameter = StringParameter;
-    class NumericalParameter {
-        get name() {
-            return this._name;
+    Core.Player = Player;
+    let GamePhase;
+    (function (GamePhase) {
+        GamePhase[GamePhase["waitingForOthers"] = 0] = "waitingForOthers";
+        GamePhase[GamePhase["started"] = 1] = "started";
+    })(GamePhase = Core.GamePhase || (Core.GamePhase = {}));
+    class RandomGuidGenerator {
+        next() {
+            return (++this._counter).toString();
         }
-        get value() {
-            return this._value;
-        }
-        constructor(name, value) {
-            this._name = name;
-            this._value = value;
-        }
-    }
-    Core.NumericalParameter = NumericalParameter;
-    class QueryAdapter {
-        getParameter(name) {
-            const value = this._adaptee[name];
-            const asNumber = Number(value);
-            if (value && !isNaN(asNumber)) {
-                return new NumericalParameter(name, asNumber);
-            }
-            else if (value) {
-                return new StringParameter(name, value);
-            }
-            return undefined;
-        }
-        constructor(query) {
-            this._adaptee = query;
+        constructor() {
+            this._counter = 0;
         }
     }
-    Core.QueryAdapter = QueryAdapter;
+    Core.RandomGuidGenerator = RandomGuidGenerator;
     class GameRegister {
-        static get instance() {
-            return (this._instance == undefined ? this._instance = new GameRegister() : this._instance);
-        }
         request(id) {
             if (this._games.has(id)) {
                 return this._games.get(id);
             }
-            return undefined;
+            else {
+                throw new Error(`Game is not found. id: ${id}`);
+            }
         }
-        register(id, game) {
+        register(game) {
+            const id = this._guidGenerator.next();
             this._games.set(id, game);
+            return id;
         }
-        constructor() {
+        constructor(guidGenerator) {
             this._games = new Map();
+            this._guidGenerator = guidGenerator;
         }
     }
     Core.GameRegister = GameRegister;

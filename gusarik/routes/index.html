@@ -5,11 +5,39 @@
     <meta charset="utf-8" />
     <title></title>
     <script>
-        window.onload = () =>
+        var playerId;
+        const gameId = "1";
+        window.onload = async () =>
         {
+            const join = await fetch(`/join?id=${gameId}&name=lox`);
+            playerId = await join.text();
+
+            for (let i = 0; i < 3; i++)
+            {
+                for (let j = 0; j < 3; j++)
+                {
+                    document.getElementById(`${i}${j}`).addEventListener("click", () =>
+                    {
+                        fetch(`/act?gameId=${gameId}&playerId=${playerId}&x=${i}&y=${j}`);
+                    })
+                }
+            }
+
             setInterval(async () =>
             {
-                const resp = fetch("/state?id=228");          
+                const resp = fetch(`/state?id=${gameId}`);
+                const state = await (await resp).json();
+
+                for (let i = 0; i < 3; i++)
+                {
+                    for (let j = 0; j < 3; j++)
+                    {
+                        if (state.board[i][j])
+                        {
+                            document.getElementById(`${i}${j}`).innerHTML = state.board[i][j];
+                        }                        
+                    }
+                }
             }, 100);
         }
     </script>
@@ -17,16 +45,22 @@
 <body>
     <input type="number" id="turn" />
 
-    <p style="font-size:20px" id="00">#</p>
-    <p style="font-size:20px" id="01">#</p>
-    <p style="font-size:20px" id="02">#</p>
+    <div style="display:flex; flex-direction:row">
+        <p style="font-size:20px" id="00">#</p>
+        <p style="font-size:20px" id="01">#</p>
+        <p style="font-size:20px" id="02">#</p>
+    </div>
 
-    <p style="font-size:20px" id="10">#</p>
-    <p style="font-size:20px" id="11">#</p>
-    <p style="font-size:20px" id="12">#</p>
+    <div style="display:flex; flex-direction:row">
+        <p style="font-size:20px" id="10">#</p>
+        <p style="font-size:20px" id="11">#</p>
+        <p style="font-size:20px" id="12">#</p>
+    </div>
 
-    <p style="font-size:20px" id="20">#</p>
-    <p style="font-size:20px" id="21">#</p>
-    <p style="font-size:20px" id="22">#</p>
+    <div style="display:flex; flex-direction:row">
+        <p style="font-size:20px" id="20">#</p>
+        <p style="font-size:20px" id="21">#</p>
+        <p style="font-size:20px" id="22">#</p>
+    </div>
 </body>
 </html>
