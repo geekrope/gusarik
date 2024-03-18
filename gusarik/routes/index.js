@@ -20,19 +20,15 @@ class TicTacState {
         }
     }
 }
-class TicTacGame {
-    get registeredPlayers() {
-        return ["lox"];
-    }
+class TicTacGame extends core_1.default.Game {
     getState(_parameters) {
         return this.state;
     }
     processAction(actionType, action) {
-        var _a, _b;
         if (this.state.gamePhase == core_1.default.GamePhase.started) {
             if (actionType == "place") {
                 const placeAction = core_1.default.DataTransferObjectValidator.validate(PlaceAction, action);
-                if (placeAction.playerId == (this.state.turn == 1 ? (_a = this.firstPlayer) === null || _a === void 0 ? void 0 : _a.id : (_b = this.secondPlayer) === null || _b === void 0 ? void 0 : _b.id)) {
+                if (placeAction.playerId == (this.state.turn == 1 ? this.registeredPlayers[0].id : this.registeredPlayers[1].id)) {
                     this.state.board[placeAction.x][placeAction.y] = this.state.turn;
                 }
                 else {
@@ -46,28 +42,19 @@ class TicTacGame {
         this.state.turn = this.state.turn == 1 ? 2 : 1;
         return new core_1.default.EmptyDataTransferObject();
     }
-    join(name) {
-        const uniqueId = this.guid.next();
-        if (!this.firstPlayer) {
-            this.firstPlayer = new core_1.default.Player(uniqueId, name);
-        }
-        else if (!this.secondPlayer) {
-            this.secondPlayer = new core_1.default.Player(uniqueId, name);
-            this.state.gamePhase = core_1.default.GamePhase.started;
-        }
-        else {
-            throw new Error("Players limit has already been reached");
-        }
-        return uniqueId;
-    }
-    constructor(guid) {
-        this.guid = guid;
+    constructor(tokenGenerator) {
+        super(tokenGenerator);
         this.state = new TicTacState(1);
+        this.addEventListener("onPlayerRegistered", () => {
+            if (this._registeredPlayers.length == 2) {
+                this.state.gamePhase = core_1.default.GamePhase.started;
+            }
+        });
     }
 }
-const game = new TicTacGame(new core_1.default.RandomGuidGenerator());
-const register = new core_1.default.GameRegister(new core_1.default.RandomGuidGenerator());
-const id = register.register(game);
+const game = new TicTacGame(new core_1.default.RandomTokenGenerator());
+const register = new core_1.default.GameRegister(new core_1.default.RandomTokenGenerator());
+const id = register.registerGame(game);
 router.get('/', (_req, res) => {
     res.sendFile(__dirname + `\\index.html`);
 });
@@ -75,15 +62,15 @@ router.get('/join', (req, res) => {
     const gameId = req.query["id"];
     const name = req.query["name"];
     if (gameId && name) {
-        const game = register.request(id.toString());
-        res.send(game.join(name.toString()));
+        const game = register.requestGame(id.toString());
+        res.send(game.registerPlayer(name.toString()).id);
     }
 });
 router.get('/state', (req, res) => {
     var _a;
     const gameId = req.query["id"];
     if (gameId) {
-        const state = (_a = register.request(gameId.toString())) === null || _a === void 0 ? void 0 : _a.getState(new core_1.default.EmptyDataTransferObject());
+        const state = (_a = register.requestGame(gameId.toString())) === null || _a === void 0 ? void 0 : _a.getState(new core_1.default.EmptyDataTransferObject());
         res.send(state);
     }
 });
@@ -91,7 +78,7 @@ router.get('/act', (req, _res) => {
     const playerId = req.query["playerId"];
     const gameId = req.query["gameId"];
     if (playerId && gameId) {
-        const game = register.request(gameId.toString());
+        const game = register.requestGame(gameId.toString());
         game.processAction("place", req.query);
     }
 });

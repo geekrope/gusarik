@@ -3,19 +3,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Core;
 (function (Core) {
     class DataTransferObjectValidator {
-        static validate(ctor, object) {
-            const result = new ctor();
-            const keys = Object.keys(result);
+        static validateObjectKeys(source, target) {
+            const keys = Object.keys(target);
             keys.forEach((key) => {
-                const value = object[key];
-                if (value === undefined /*|| typeof object[key] != typeof result[key]*/) {
-                    throw new Error(`Type ${typeof object} is not assignable to a variable of type ${typeof result}`);
+                const value = source[key];
+                if (value === undefined) {
+                    throw new Error(`Field ${key} in source `);
                 }
                 else {
-                    result[key] = value;
+                    target[key] = this.validateRecursive(source[key], value);
                 }
             });
-            return result;
+            return target;
+        }
+        static validateRecursive(source, target) {
+            const sourceType = typeof source;
+            const targetType = typeof target;
+            const sourceAsArray = source instanceof Array;
+            const targetAsArray = target instanceof Array;
+            switch (targetType) {
+                case "boolean":
+                case "number":
+                case "string":
+                    if (sourceType != targetType) {
+                        throw new TypeError(`Type ${sourceType} is not assignable to a variable of type ${targetType}`);
+                    }
+                    return source;
+                default:
+                    if (sourceAsArray && targetAsArray) {
+                        source.forEach((item) => {
+                            target.push(item); //??? validattion
+                        });
+                    }
+                    else if (sourceAsArray != targetAsArray) {
+                        throw new TypeError(`Type ${sourceType} is not assignable to a variable of type ${targetType}`);
+                    }
+                    return this.validateObjectKeys(source, target);
+            }
+        }
+        static validate(ctor, source) {
+            const target = new ctor();
+            return this.validateRecursive(source, target);
         }
     }
     Core.DataTransferObjectValidator = DataTransferObjectValidator;
@@ -42,8 +70,41 @@ var Core;
     (function (GamePhase) {
         GamePhase[GamePhase["waitingForOthers"] = 0] = "waitingForOthers";
         GamePhase[GamePhase["started"] = 1] = "started";
+        GamePhase[GamePhase["ended"] = 2] = "ended";
     })(GamePhase = Core.GamePhase || (Core.GamePhase = {}));
-    class RandomGuidGenerator {
+    class Game {
+        get registeredPlayers() {
+            return this._registeredPlayers;
+        }
+        addEventListener(type, eventHandler) {
+            switch (type) {
+                case "onPlayerRegistered":
+                    this._onPlayerRegistered.push(eventHandler);
+                    break;
+                default:
+                    throw new Error(`Unknown event type: ${type}`);
+            }
+        }
+        registerPlayer(name) {
+            if (this._playersCount === undefined || this._registeredPlayers.length < this._playersCount) {
+                const player = new Player(this._tokenGenerator.next(), name);
+                this._registeredPlayers.push(player);
+                this._onPlayerRegistered.forEach((eventHandler) => {
+                    eventHandler(player);
+                });
+                return player;
+            }
+            throw new Error("Unable to register new player: maximum number of players have already registered");
+        }
+        constructor(tokenGenerator, playersCount = undefined) {
+            this._registeredPlayers = [];
+            this._onPlayerRegistered = [];
+            this._tokenGenerator = tokenGenerator;
+            this._playersCount = playersCount;
+        }
+    }
+    Core.Game = Game;
+    class RandomTokenGenerator {
         next() {
             return (++this._counter).toString();
         }
@@ -51,9 +112,9 @@ var Core;
             this._counter = 0;
         }
     }
-    Core.RandomGuidGenerator = RandomGuidGenerator;
+    Core.RandomTokenGenerator = RandomTokenGenerator;
     class GameRegister {
-        request(id) {
+        requestGame(id) {
             if (this._games.has(id)) {
                 return this._games.get(id);
             }
@@ -61,14 +122,14 @@ var Core;
                 throw new Error(`Game is not found. id: ${id}`);
             }
         }
-        register(game) {
-            const id = this._guidGenerator.next();
+        registerGame(game) {
+            const id = this._tokenGenerator.next();
             this._games.set(id, game);
             return id;
         }
-        constructor(guidGenerator) {
+        constructor(tokenGenerator) {
             this._games = new Map();
-            this._guidGenerator = guidGenerator;
+            this._tokenGenerator = tokenGenerator;
         }
     }
     Core.GameRegister = GameRegister;
